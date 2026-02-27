@@ -1,4 +1,7 @@
 import { Body, Injectable } from "@nestjs/common";
+import { DoctorDto } from "src/doctor/doctor.dto";
+import { PatientDto } from "src/patient/patient.dto";
+import { AdminDTO } from "./admin.dto";
 
 @Injectable()
 export class AdminService {
@@ -14,24 +17,26 @@ export class AdminService {
     getAllManagers(): object {
         return { message: "All managers retrieved successfully" };
     }
-
-    createDoctor(data: String): object {
+    createAdmin(data: AdminDTO): object {
+        return { message: "Admin created successfully", data };
+    }
+    createDoctor(data: DoctorDto): object {
         return { message: "Doctor created successfully", data };
     }
-    createPatient(data: String): object {
+    createPatient(data: PatientDto): object {
         return { message: "Patient created successfully", data };
     }
     createManager(data: String): object {
         return { message: "Manager created successfully", data };
     }
 
-    updateDoctor(id: number, data: String): object {
+    updateDoctor(id: number, data: DoctorDto): object {
         return { message: `Doctor with id ${id} updated successfully`, data };
     }
     updateManager(id: number, data: String): object {
         return { message: `Manager with id ${id} updated successfully`, data };
     }
-    updatePatient(id: number, data: String): object {
+    updatePatient(id: number, data: PatientDto): object {
         return { message: `Patient with id ${id} updated successfully`, data };
     }
 
@@ -45,10 +50,10 @@ export class AdminService {
         return { message: `Manager with id ${id} deleted successfully` };
     }
 
-    updatePatients(id: number, data: string): object {
+    updatePatients(id: number, data: PatientDto): object {
         return { message: `Patient with id ${id} updated successfully`, data };
     }
-    updateDoctors(id: number, data: string): object {
+    updateDoctors(id: number, data: DoctorDto): object {
         return { message: `Doctor with id ${id} updated successfully`, data };
     }
     updateManagers(id: number, data: string): object {

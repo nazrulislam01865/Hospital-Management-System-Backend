@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from "@nestjs/common";
-import { get } from "http";
 import { AdminDTO } from "./admin.dto";
 import { AdminService } from "./admin.service";
+import { DoctorDto } from "src/doctor/doctor.dto";
+import { PatientDto } from "src/patient/patient.dto";
 
 @Controller("admin")
 export class AdminController {
@@ -10,7 +11,7 @@ export class AdminController {
 
     // Get all users, doctors, patients, and managers
     @Get('get-all-users')
-    getAllUsers(@Body() data: AdminDTO): object   {
+    getAllUsers(): object   {
         return this.adminService.getAllUsers();
     }
     @Get('doctors')
@@ -28,11 +29,15 @@ export class AdminController {
 
     // Create new doctor, patient, and manager
     @Post('doctors')
-    createDoctor(@Body() data: String): object {
+    createDoctor(@Body() data: DoctorDto): object {
         return this.adminService.createDoctor(data);
     }
+    @Post('c')
+    createAdmin(@Body() data: AdminDTO): object {
+        return { message: "Admin created successfully", data };
+    }
     @Post('patients')
-    createPatient(@Body() data: String): object {
+    createPatient(@Body() data: PatientDto): object {
         return this.adminService.createPatient(data);
     }
     @Post('managers')
@@ -42,8 +47,8 @@ export class AdminController {
 
 
     // Update doctor, patient, and manager by id
-    @Put('update-doctor/:id')
-    updateDoctor(@Param('id') id: number, @Body() data: String): object {
+     @Put('update-doctor/:id')
+    updateDoctor( @Param('id') id: number, @Body() data: DoctorDto): object {
         return this.adminService.updateDoctor(id, data);
     }
     @Put('update-manager/:id')
@@ -51,7 +56,7 @@ export class AdminController {
         return this.adminService.updateManager(id, data);
     }
     @Put('update-patient/:id')
-    updatePatient(@Param('id') id: number, @Body() data: String): object {
+    updatePatient(@Param('id') id: number, @Body() data: PatientDto): object {
         return this.adminService.updatePatient(id, data);
     }
 
@@ -71,11 +76,11 @@ export class AdminController {
 
     // Update doctor, patient, and manager by id
     @Patch('patients/:id')
-    updatePatients(@Param('id') id: number, @Body() data: string):object {
+    updatePatients(@Param('id') id: number, @Body() data: PatientDto):object {
         return this.adminService.updatePatients(id, data);
     }
     @Patch('doctors/:id')
-    updateDoctors(@Param('id') id: number, @Body() data: string):object {
+    updateDoctors(@Param('id') id: number, @Body() data: DoctorDto):object {
         return this.adminService.updateDoctors(id, data);
     }
     @Patch('managers/:id')
