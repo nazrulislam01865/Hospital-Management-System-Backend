@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put } from "@nestjs/common";
 import { AdminDTO } from "./admin.dto";
 import { AdminService } from "./admin.service";
 import { DoctorDto } from "src/doctor/doctor.dto";
@@ -14,6 +14,10 @@ export class AdminController {
     getAllUsers(): object   {
         return this.adminService.getAllUsers();
     }
+    @Get('admins')
+    getAllAdmins(): object {
+    return this.adminService.getAllAdmins();
+  }
     @Get('doctors')
     getAllDoctors() {
         return this.adminService.getAllDoctors();
@@ -26,15 +30,19 @@ export class AdminController {
     getAllManagers() {
         return this.adminService.getAllManagers();
     }
+    @Get('admins/:id')
+    getAdminById(@Param('id', ParseIntPipe) id: number): object {
+    return this.adminService.getAdminById(id);
+  }
 
     // Create new doctor, patient, and manager
     @Post('doctors')
     createDoctor(@Body() data: DoctorDto): object {
         return this.adminService.createDoctor(data);
     }
-    @Post('c')
+    @Post('admins')
     createAdmin(@Body() data: AdminDTO): object {
-        return { message: "Admin created successfully", data };
+        return this.adminService.createAdmin(data);
     }
     @Post('patients')
     createPatient(@Body() data: PatientDto): object {
@@ -59,6 +67,13 @@ export class AdminController {
     updatePatient(@Param('id') id: number, @Body() data: PatientDto): object {
         return this.adminService.updatePatient(id, data);
     }
+    @Put('admins/:id')
+    updateAdmin(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() data: AdminDTO,
+    ): object {
+        return this.adminService.updateAdmin(id, data);
+    }
 
     // Delete doctor, patient, and manager by id
     @Delete('patients/:id')
@@ -72,6 +87,10 @@ export class AdminController {
     @Delete('managers/:id')
     deleteManager(@Param('id') id: number) {
         return this.adminService.deleteManager(id);
+    }
+    @Delete('admins/:id')
+    deleteAdmin(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.deleteAdmin(id);
     }
 
     // Update doctor, patient, and manager by id
@@ -87,6 +106,7 @@ export class AdminController {
     updateManagers(@Param('id') id: number, @Body() data: string):object {
         return this.adminService.updateManagers(id, data);
     }
+
 
 
 }
