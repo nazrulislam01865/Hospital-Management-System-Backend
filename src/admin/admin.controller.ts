@@ -3,6 +3,10 @@ import { AdminDTO } from "./admin.dto";
 import { AdminService } from "./admin.service";
 import { DoctorDto } from "src/doctor/doctor.dto";
 import { PatientDto } from "src/patient/patient.dto";
+import { ServiceChargeDto } from "./dto/service-charge.dto";
+import { BillDto } from "./dto/bill.dto";
+import { AppointmentDto } from "./dto/appointment.dto";
+import { RoomDto } from "./dto/room.dto";
 
 @Controller("admin")
 export class AdminController {
@@ -107,6 +111,73 @@ export class AdminController {
         return this.adminService.updateManagers(id, data);
     }
 
+
+    //Appointment, bill, room, and service charge management
+
+    @Get('appointments')
+    getAllAppointments(): object {
+        return this.adminService.getAllAppointments();
+    }
+
+    @Post('appointments')
+    createAppointment(@Body() data: AppointmentDto): object {
+        return this.adminService.createAppointment(data);
+    }
+
+    @Patch('appointments/:id/approve')
+    approveAppointment(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.approveAppointment(id);
+    }
+
+    @Patch('appointments/:id/cancel')
+    cancelAppointment(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.cancelAppointment(id);
+    }
+
+    // Billing Management
+    @Get('bills')
+    getAllBills(): object {
+        return this.adminService.getAllBills();
+    }
+
+    @Post('bills')
+    createBill(@Body() data: BillDto): object {
+        return this.adminService.createBill(data);
+    }
+
+    @Patch('bills/:id/service-charge')
+    updateServiceCharge(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() data: ServiceChargeDto,
+    ): object {
+        return this.adminService.updateServiceCharge(id, data);
+    }
+
+    @Patch('bills/:id/pay')
+    payBill(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.payBill(id);
+    }
+
+    // Room & Bed Management
+    @Get('rooms')
+    getAllRooms(): object {
+        return this.adminService.getAllRooms();
+    }
+
+    @Post('rooms')
+    createRoom(@Body() data: RoomDto): object {
+        return this.adminService.createRoom(data);
+    }
+
+    @Patch('rooms/:id/assign-bed')
+    assignBed(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.assignBed(id);
+    }
+
+    @Patch('rooms/:id/release-bed')
+    releaseBed(@Param('id', ParseIntPipe) id: number): object {
+        return this.adminService.releaseBed(id);
+    }
 
 
 }
