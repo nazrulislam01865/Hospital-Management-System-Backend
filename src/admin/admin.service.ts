@@ -6,6 +6,10 @@ import { AppointmentDto } from "./dto/appointment.dto";
 import { BillDto } from "./dto/bill.dto";
 import { RoomDto } from "./dto/room.dto";
 import { ServiceChargeDto } from "./dto/service-charge.dto";
+import { InjectRepository } from "@nestjs/typeorm/dist/common/typeorm.decorators";
+import { Repository } from "typeorm/browser/repository/Repository.js";
+import { Appointment } from "./entities/appointment.entity";
+import { AdminEntity } from "./entities/admin.entity";
 
 interface AdminRecord extends AdminDTO {
   id: number;
@@ -30,6 +34,14 @@ interface RoomRecord {
 @Injectable()
 export class AdminService {
 
+    constructor(
+    @InjectRepository(Appointment)
+    private appointmentRepo: Repository<Appointment>,
+
+    @InjectRepository(AdminEntity)
+    private adminRepo: Repository<AdminEntity>,
+    ) {}
+
     private adminIdCounter = 1;
     private readonly admins: AdminRecord[] = [];
     private appointmentIdCounter = 1;
@@ -39,6 +51,93 @@ export class AdminService {
     private readonly appointments: AppointmentRecord[] = [];
     private readonly bills: BillRecord[] = [];
     private readonly rooms: RoomRecord[] = [];
+
+    //appointment db
+    // async createAppointment(data: AppointmentDto): Promise<Appointment> {
+
+    //     const appointment = this.appointmentRepo.create({
+    //     ...data,
+    //     appointmentDate: data.appointmentDate
+    //         ? new Date(data.appointmentDate)
+    //         : Date.now(),
+    //     });
+
+    //     return await this.appointmentRepo.save(appointment);
+    // }
+
+    async createAdmin(data: AdminDTO): Promise<object> {
+    const admin = this.adminRepo.create({
+        ...data,
+    });
+
+    const savedAdmin = await this.adminRepo.save(admin);
+
+    return {
+        message: 'Admin created successfully',
+        data: savedAdmin,
+    };
+    }
+
+    async createAppointment(
+    adminId: number,
+    data: AppointmentDto,
+    ): Promise<Appointment> {
+
+    const admin = await this.adminRepo.findOne({
+    where: { id: adminId },
+    });
+
+    if (!admin) {
+    throw new Error('Admin not found');
+    }
+
+    const appointment = this.appointmentRepo.create({
+        ...data,
+        appointmentDate: data.appointmentDate
+        ? new Date(data.appointmentDate)
+        : new Date(),
+        admin: admin,
+    });
+
+    return await this.appointmentRepo.save(appointment);
+    }
+
+    // Modify appointment
+    async updateAppointment(id: number,data: Partial<AppointmentDto>): Promise<Appointment | null> {
+
+        await this.appointmentRepo.update(id, data);
+
+        return await this.appointmentRepo.findOneBy({ id });
+    }
+
+  // Retrieve by creation date
+    async getAppointmentsByDate(date: string): Promise<Appointment[]> {
+
+        return this.appointmentRepo
+        .createQueryBuilder('appointment')
+        .where('DATE(appointment.appointmentDate) = :date', { date })
+        .getMany();
+    }
+
+    // Retrieve unpaid appointments
+    async getUnpaidAppointments(): Promise<Appointment[]> {
+
+        return this.appointmentRepo.find({
+        where: {
+            paymentStatus: 'Unpaid',
+        },
+        });
+    }
+
+
+
+
+
+
+
+
+
+
 
     getAllUsers(): object {
         return { message: "All users retrieved successfully" };
@@ -111,19 +210,21 @@ export class AdminService {
         };
     }
 
-    createAdmin(data: AdminDTO): object {
-        const newAdmin: AdminRecord = {
-        id: this.adminIdCounter++,
-        ...data,
-        };
+    // createAdmin(data: AdminDTO): object {
+    //     const newAdmin: AdminRecord = {
+    //     id: this.adminIdCounter++,
+    //     ...data,
+    //     };
 
-        this.admins.push(newAdmin);
+    //     this.admins.push(newAdmin);
 
-        return {
-        message: 'Admin created successfully',
-        data: newAdmin,
-        };
-    }
+    //     return {
+    //     message: 'Admin created successfully',
+    //     data: newAdmin,
+    //     };
+    // }
+
+
 
     updateAdmin(id: number, data: AdminDTO): object {
         const index = this.admins.findIndex((item) => item.id === id);
@@ -148,20 +249,20 @@ export class AdminService {
         };
     }
 
-    createAppointment(data: AppointmentDto): object {
-        const newAppointment: AppointmentRecord = {
-        id: this.appointmentIdCounter++,
-        ...data,
-        status: 'Pending',
-        };
+    // createAppointment(data: AppointmentDto): object {
+    //     const newAppointment: AppointmentRecord = {
+    //     id: this.appointmentIdCounter++,
+    //     ...data,
+    //     status: 'Pending',
+    //     };
 
-        this.appointments.push(newAppointment);
+    //     this.appointments.push(newAppointment);
 
-        return {
-        message: 'Appointment created successfully',
-        data: newAppointment,
-        };
-    }
+    //     return {
+    //     message: 'Appointment created successfully',
+    //     data: newAppointment,
+    //     };
+    // }
 
     approveAppointment(id: number): object {
         const appointment = this.appointments.find((item) => item.id === id);

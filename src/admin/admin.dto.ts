@@ -11,6 +11,11 @@ export class AdminDTO {
   @IsNotEmpty({ message: 'Username field is required' })
   uname: string;
 
+  @IsNotEmpty({ message: 'Email field is required' })
+  @IsString()
+  @Matches(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: 'Please provide a valid email address' })
+  email: string;
+
   @IsString()
   @IsNotEmpty({ message: 'Password field is required' })
   @Matches(/^(?=.*[@#$&]).+$/, {message:'Password must contain at least one special character (@ or # or $ or &)'})

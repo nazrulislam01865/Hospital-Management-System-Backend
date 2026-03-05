@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class AppointmentDto {
   @IsString()
@@ -12,5 +12,6 @@ export class AppointmentDto {
   doctorName: string;
 
   @IsDateString({}, { message: 'Please provide a valid appointment date' })
-  appointmentDate: string;
+  @IsOptional()
+  appointmentDate?: string;
 }

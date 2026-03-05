@@ -13,6 +13,45 @@ export class AdminController {
 
     constructor(private readonly adminService: AdminService) { }
 
+    // Admin Management
+
+    // Create appointment
+    @Post('/:adminId/appointment')
+    createAppointment(@Param('adminId') adminId: number,@Body() dto: AppointmentDto) {
+        return this.adminService.createAppointment(adminId, dto);
+    }
+
+    // Modify appointment
+    @Patch('appointment/:id')
+    updateAppointment(@Param('id') id: number,@Body() dto: Partial<AppointmentDto>) {
+        return this.adminService.updateAppointment(id, dto);
+    }
+
+    // Retrieve appointment by date
+    @Get('appointment/date/:date')
+    getAppointmentsByDate(@Param('date') date: string) {
+        return this.adminService.getAppointmentsByDate(date);
+    }
+
+    // Retrieve unpaid appointments
+    @Get('appointment/unpaid')
+    getUnpaidAppointments() {
+        return this.adminService.getUnpaidAppointments();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Get all users, doctors, patients, and managers
     @Get('get-all-users')
     getAllUsers(): object   {
@@ -119,10 +158,10 @@ export class AdminController {
         return this.adminService.getAllAppointments();
     }
 
-    @Post('appointments')
-    createAppointment(@Body() data: AppointmentDto): object {
-        return this.adminService.createAppointment(data);
-    }
+    // @Post('appointments')
+    // createAppointment(@Body() data: AppointmentDto): object {
+    //     return this.adminService.createAppointment(data);
+    // }
 
     @Patch('appointments/:id/approve')
     approveAppointment(@Param('id', ParseIntPipe) id: number): object {
