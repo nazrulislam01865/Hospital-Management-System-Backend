@@ -1,10 +1,10 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
+import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Min } from 'class-validator';
 
 export class AppointmentDto {
-  @IsString()
+  @IsInt()
+  @Min(1)
   @IsNotEmpty()
-  @Matches(/^(?!.*\d)[A-Za-z\s]+$/, {message: 'Patient name should not contain any numbers'})
-  patientName: string;
+  patientId: number;
 
   @IsString()
   @IsNotEmpty()

@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
-import { IsValidDate } from 'src/common/validators/is-valid-date.decorator';
+import { IsNotEmpty, IsOptional, IsString, IsUrl, Matches} from 'class-validator';
+import { IsValidDate } from '../common/validators/is-valid-date.decorator';
 
 export class AdminDTO {
   @IsString()

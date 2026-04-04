@@ -9,6 +9,13 @@ export class PatientDto {
   name: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {
+    message: 'Please provide a valid email address',
+  })
+  email: string;
+
+  @IsString()
   @IsNotEmpty({ message: 'Password field is required' })
   @Matches(/^(?=.*[@#$&]).+$/, {
     message:

@@ -8,6 +8,7 @@ import {
 
 import { v4 as uuidv4 } from 'uuid';
 import { Appointment } from './appointment.entity';
+import { BillEntity } from './bill.entity';
 
 @Entity('admins')
 export class AdminEntity {
@@ -41,6 +42,9 @@ export class AdminEntity {
 
   @OneToMany(() => Appointment, (appointment) => appointment.admin)
   appointments: Appointment[];
+
+  @OneToMany(() => BillEntity, (bill) => bill.admin)
+  bills: BillEntity[];
 
   constructor() {
     if (!this.uniqueId) {
