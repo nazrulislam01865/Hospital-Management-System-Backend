@@ -11,7 +11,13 @@ import { RoomEntity } from "./entities/room.entity";
 import { MailModule } from "../mail/mail.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([AdminEntity,Appointment,BillEntity,PaitentEntity,RoomEntity, ]),AuthModule,MailModule],
+    imports: [TypeOrmModule.forFeature([
+        AdminEntity,Appointment,
+        BillEntity,
+        PaitentEntity,
+        RoomEntity, 
+    ]),
+    AuthModule,MailModule],
     controllers: [AdminController],
     providers: [AdminService],
 })

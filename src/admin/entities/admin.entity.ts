@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  OneToMany,
-} from 'typeorm';
+import {Entity,PrimaryGeneratedColumn,Column,CreateDateColumn,OneToMany,} from 'typeorm';
 
 import { v4 as uuidv4 } from 'uuid';
 import { Appointment } from './appointment.entity';

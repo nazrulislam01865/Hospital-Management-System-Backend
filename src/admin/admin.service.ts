@@ -536,18 +536,18 @@ export class AdminService {
             admin: bill.admin
                 ? {
                     id: bill.admin.id,
-                    name: bill.admin.name,
-                    uname: bill.admin.uname,
-                    email: bill.admin.email,
+                    // name: bill.admin.name,
+                    // uname: bill.admin.uname,
+                    // email: bill.admin.email,
                 }: null,
             appointment: bill.appointment
                 ? {
                     id: bill.appointment.id,
-                    patientName: bill.appointment.patient.name,
-                    doctorName: bill.appointment.doctorName,
-                    appointmentDate: bill.appointment.appointmentDate,
-                    status: bill.appointment.status,
-                    paymentStatus: bill.appointment.paymentStatus,
+                    // patientName: bill.appointment.patient.name,
+                    // doctorName: bill.appointment.doctorName,
+                    // appointmentDate: bill.appointment.appointmentDate,
+                    // status: bill.appointment.status,
+                    // paymentStatus: bill.appointment.paymentStatus,
                 }: null,
             },
         };
@@ -764,7 +764,10 @@ export class AdminService {
 
         return {
             message: `Room with id ${id} updated successfully`,
-            data: updatedRoom,
+            data: [
+                { id: updatedRoom.id },
+                { uniqueId: updatedRoom.uniqueId }
+            ],
         };
     }
 
