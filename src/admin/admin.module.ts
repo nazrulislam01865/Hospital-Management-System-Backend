@@ -8,6 +8,7 @@ import { AuthModule } from "../auth/auth.module";
 import { BillEntity } from "./entities/bill.entity";
 import { PaitentEntity } from "../patient/entities/patient.entity";
 import { RoomEntity } from "./entities/room.entity";
+import { RoomAssignmentEntity } from "./entities/room-assignment.entity";
 import { MailModule } from "../mail/mail.module";
 
 @Module({
@@ -16,6 +17,7 @@ import { MailModule } from "../mail/mail.module";
         BillEntity,
         PaitentEntity,
         RoomEntity, 
+        RoomAssignmentEntity,
     ]),
     AuthModule,MailModule],
     controllers: [AdminController],

@@ -1,7 +1,16 @@
-import {Column,CreateDateColumn,Entity,JoinColumn,ManyToOne,OneToOne,PrimaryGeneratedColumn,} from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminEntity } from './admin.entity';
 import { Appointment } from './appointment.entity';
+import { PaitentEntity } from '../../patient/entities/patient.entity';
 
 @Entity('bills')
 export class BillEntity {
@@ -17,6 +26,9 @@ export class BillEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   serviceCharge: number;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  roomCharge: number;
+
   @Column({ type: 'date' })
   billingDate: string;
 
@@ -29,8 +41,17 @@ export class BillEntity {
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @ManyToOne(() => AdminEntity, (admin) => admin.bills, { onDelete: 'CASCADE' })
+  @ManyToOne(() => AdminEntity, (admin) => admin.bills, {
+    onDelete: 'CASCADE',
+  })
   admin: AdminEntity;
+
+  @ManyToOne(() => PaitentEntity, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'patientId' })
+  patient?: PaitentEntity;
 
   @OneToOne(() => Appointment, (appointment) => appointment.bill, {
     onDelete: 'SET NULL',

@@ -1,5 +1,12 @@
-import {Column,CreateDateColumn,Entity,PrimaryGeneratedColumn,} from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { RoomAssignmentEntity } from './room-assignment.entity';
 
 @Entity('rooms')
 export class RoomEntity {
@@ -17,6 +24,9 @@ export class RoomEntity {
 
   @Column({ type: 'int' })
   availableBeds: number;
+
+  @OneToMany(() => RoomAssignmentEntity, (assignment) => assignment.room)
+  assignments: RoomAssignmentEntity[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

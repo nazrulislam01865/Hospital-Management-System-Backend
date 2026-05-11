@@ -1,11 +1,12 @@
-import { BadRequestException, Body, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { DoctorDto } from "../doctor/doctor.dto";
-import { PatientDto } from "../patient/patient.dto";
+import { PatientDto, UpdatePatientDto } from "../patient/patient.dto";
 import { AdminDTO } from "./admin.dto";
 import { AppointmentDto } from "./dto/appointment.dto";
 import { BillDto } from "./dto/bill.dto";
 import { RoomDto } from "./dto/room.dto";
 import { ServiceChargeDto } from "./dto/service-charge.dto";
+import { RoomAssignDto } from "./dto/room-assign.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Appointment } from "./entities/appointment.entity";
@@ -13,8 +14,10 @@ import { AdminEntity } from "./entities/admin.entity";
 import { BillEntity } from "./entities/bill.entity";
 import { RoomEntity } from "./entities/room.entity";
 import { PaitentEntity } from "../patient/entities/patient.entity";
+
 import * as bcrypt from 'bcryptjs';
 import { MailService } from "../mail/mail.service";
+import { RoomAssignmentEntity } from "./entities/room-assignment.entity";
 
 @Injectable()
 export class AdminService {
@@ -30,6 +33,8 @@ export class AdminService {
     private readonly patientRepo: Repository<PaitentEntity>,
     @InjectRepository(RoomEntity)
     private readonly roomRepo: Repository<RoomEntity>,
+    @InjectRepository(RoomAssignmentEntity)
+    private readonly roomAssignmentRepo: Repository<RoomAssignmentEntity>,
     private readonly mailService: MailService,
     ) {}
 
@@ -67,8 +72,10 @@ export class AdminService {
             ],
         });
 
-        if (duplicateAdmin) {
-            throw new BadRequestException('Admin with the same email or username already exists');
+        if (duplicateAdmin && duplicateAdmin.id !== id) {
+            throw new BadRequestException(
+                'Admin with the same email or username already exists',
+            );
         }
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -120,91 +127,285 @@ export class AdminService {
 
 
 
-    //Patient Management
+    // //Patient Management
 
-    async getAllPatients() {
-        const patients = await this.patientRepo.find({ order: { id: 'ASC' } });
+    // async getAllPatients() {
+    //     const patients = await this.patientRepo.find({ order: { id: 'ASC' } });
 
-        return {
-        message: 'All patients retrieved successfully',
-        data: patients,
-        };
-    }
+    //     return {
+    //     message: 'All patients retrieved successfully',
+    //     data: patients,
+    //     };
+    // }
 
-    async getPatientById(id: number) {
-        const patient = await this.patientRepo.findOne({ where: { id } });
+    // async getPatientById(id: number) {
+    //     const patient = await this.patientRepo.findOne({ where: { id } });
 
-        if (!patient) {
-            throw new NotFoundException('Patient not found');
-        }
+    //     if (!patient) {
+    //         throw new NotFoundException('Patient not found');
+    //     }
 
-        return {
-            message: `Patient with id ${id} retrieved successfully`,
-            data: {
-            id: patient.id,
-            uniqueId: patient.uniqueId,
-            name: patient.name,
-            dateOfBirth: patient.dateOfBirth,
-            socialMediaLinks: patient.socialMediaLinks,
-            },
-        };
-    }
+    //     return {
+    //         message: `Patient with id ${id} retrieved successfully`,
+    //         data: {
+    //         id: patient.id,
+    //         uniqueId: patient.uniqueId,
+    //         name: patient.name,
+    //         dateOfBirth: patient.dateOfBirth,
+    //         socialMediaLinks: patient.socialMediaLinks,
+    //         },
+    //     };
+    // }
 
-    async createPatient(data: PatientDto): Promise<object> {
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+    // async createPatient(data: PatientDto): Promise<object> {
+    //     const hashedPassword = await bcrypt.hash(data.password, 10);
         
-        const patient = this.patientRepo.create({
-            name: data.name,
-            email: data.email,
-            password: hashedPassword,
-            dateOfBirth: data.dateOfBirth,
-            socialMediaLinks: data.socialMediaLinks,
-        });
-        await this.patientRepo.save(patient);
-        return { message: 'Patient created successfully', data: patient };
+    //     const patient = this.patientRepo.create({
+    //         name: data.name,
+    //         email: data.email,
+    //         password: hashedPassword,
+    //         dateOfBirth: data.dateOfBirth,
+    //         socialMediaLinks: data.socialMediaLinks,
+    //     });
+    //     await this.patientRepo.save(patient);
+    //     return { message: 'Patient created successfully', data: patient };
+    // }
+
+    // async deletePatient(id: number) {
+    //     const patient = await this.patientRepo.findOne({ where: { id } });
+
+    //     if (!patient) {
+    //     throw new NotFoundException('Patient not found');
+    //     }
+
+    //     await this.patientRepo.remove(patient);
+
+    //     return {
+    //     message: `Patient with id ${id} deleted successfully`,
+    //     };
+    // }
+
+
+    // async updatePatients(id: number, data: PatientDto) {
+    //     const patient = await this.patientRepo.findOne({ where: { id } });
+
+    //     if (!patient) {
+    //     throw new NotFoundException('Patient not found');
+    //     }
+
+    //     patient.name = data.name;
+    //     patient.email = data.email;
+    //     patient.password = await bcrypt.hash(data.password, 10);
+    //     patient.dateOfBirth = data.dateOfBirth;
+    //     patient.socialMediaLinks = data.socialMediaLinks;
+
+    //     const updatedPatient = await this.patientRepo.save(patient);
+
+    //     return {
+    //     message: `Patient with id ${id} updated successfully`,
+    //     data: [
+    //         updatedPatient.id,
+    //         updatedPatient.name,
+    //         updatedPatient.email,
+    //         updatedPatient.dateOfBirth,
+    //         updatedPatient.socialMediaLinks,
+    //     ],
+    //     };
+    // }
+
+    // Patient Management
+
+async getAllPatients() {
+  const patients = await this.patientRepo.find({
+    order: { id: 'ASC' },
+  });
+
+  return {
+    message: 'All patients retrieved successfully',
+    data: patients.map((patient) => ({
+      id: patient.id,
+      uniqueId: patient.uniqueId,
+      name: patient.name,
+      email: patient.email,
+      dateOfBirth: patient.dateOfBirth,
+      socialMediaLinks: patient.socialMediaLinks,
+      createdAt: patient.createdAt,
+    })),
+  };
+}
+
+async getPatientById(id: number) {
+  const patient = await this.patientRepo.findOne({
+    where: { id },
+  });
+
+  if (!patient) {
+    throw new NotFoundException(`Patient with id ${id} not found`);
+  }
+
+  return {
+    message: `Patient with id ${id} retrieved successfully`,
+    data: {
+      id: patient.id,
+      uniqueId: patient.uniqueId,
+      name: patient.name,
+      email: patient.email,
+      dateOfBirth: patient.dateOfBirth,
+      socialMediaLinks: patient.socialMediaLinks,
+      createdAt: patient.createdAt,
+    },
+  };
+}
+
+async createPatient(data: PatientDto): Promise<object> {
+  const existingPatient = await this.patientRepo.findOne({
+    where: { email: data.email },
+  });
+
+  if (existingPatient) {
+    throw new ConflictException(
+      `Patient with email ${data.email} already exists`,
+    );
+  }
+
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+
+  const patient = this.patientRepo.create({
+    name: data.name,
+    email: data.email,
+    password: hashedPassword,
+    dateOfBirth: data.dateOfBirth,
+    socialMediaLinks: data.socialMediaLinks ?? [],
+  });
+
+  try {
+    const savedPatient = await this.patientRepo.save(patient);
+
+    return {
+      message: 'Patient created successfully',
+      data: {
+        id: savedPatient.id,
+        uniqueId: savedPatient.uniqueId,
+        name: savedPatient.name,
+        email: savedPatient.email,
+        dateOfBirth: savedPatient.dateOfBirth,
+        socialMediaLinks: savedPatient.socialMediaLinks,
+        createdAt: savedPatient.createdAt,
+      },
+    };
+  } catch (error) {
+    throw new BadRequestException(this.getPatientCreateErrorMessage(error));
+  }
+}
+
+private getPatientCreateErrorMessage(error: unknown): string {
+  const driverError = (error as any)?.driverError || error;
+  const message = String(driverError?.detail || driverError?.message || '');
+  const lowerMessage = message.toLowerCase();
+
+  if (
+    driverError?.code === '23505' ||
+    lowerMessage.includes('duplicate') ||
+    lowerMessage.includes('unique constraint')
+  ) {
+    if (lowerMessage.includes('email')) {
+      return 'Patient with this email already exists';
     }
 
-    async deletePatient(id: number) {
-        const patient = await this.patientRepo.findOne({ where: { id } });
-
-        if (!patient) {
-        throw new NotFoundException('Patient not found');
-        }
-
-        await this.patientRepo.remove(patient);
-
-        return {
-        message: `Patient with id ${id} deleted successfully`,
-        };
+    if (
+      lowerMessage.includes('uniqueid') ||
+      lowerMessage.includes('unique_id')
+    ) {
+      return 'Patient unique ID already exists. Please try again';
     }
 
+    return 'Patient could not be created because duplicate patient data already exists';
+  }
 
-    async updatePatients(id: number, data: PatientDto) {
-        const patient = await this.patientRepo.findOne({ where: { id } });
+  if (message) {
+    return message;
+  }
 
-        if (!patient) {
-        throw new NotFoundException('Patient not found');
-        }
+  return 'Patient could not be created because the backend rejected the submitted data';
+}
 
-        patient.name = data.name;
-        patient.email = data.email;
-        patient.password = await bcrypt.hash(data.password, 10);
-        patient.dateOfBirth = data.dateOfBirth;
-        patient.socialMediaLinks = data.socialMediaLinks;
+async updatePatients(id: number, data: UpdatePatientDto) {
+  const patient = await this.patientRepo.findOne({
+    where: { id },
+  });
 
-        const updatedPatient = await this.patientRepo.save(patient);
+  if (!patient) {
+    throw new NotFoundException(`Patient with id ${id} not found`);
+  }
 
-        return {
-        message: `Patient with id ${id} updated successfully`,
-        data: [
-            updatedPatient.id,
-            updatedPatient.name,
-            updatedPatient.email,
-            updatedPatient.dateOfBirth,
-            updatedPatient.socialMediaLinks,
-        ],
-        };
+  if (data.email && data.email !== patient.email) {
+    const existingPatient = await this.patientRepo.findOne({
+      where: { email: data.email },
+    });
+
+    if (existingPatient && existingPatient.id !== id) {
+      throw new ConflictException(
+        `Patient with email ${data.email} already exists`,
+      );
     }
+  }
+
+  if (data.name !== undefined) {
+    patient.name = data.name;
+  }
+
+  if (data.email !== undefined) {
+    patient.email = data.email;
+  }
+
+  if (data.password) {
+    patient.password = await bcrypt.hash(data.password, 10);
+  }
+
+  if (data.dateOfBirth !== undefined) {
+    patient.dateOfBirth = data.dateOfBirth;
+  }
+
+  if (data.socialMediaLinks !== undefined) {
+    patient.socialMediaLinks = data.socialMediaLinks;
+  }
+
+  try {
+    const updatedPatient = await this.patientRepo.save(patient);
+
+    return {
+      message: `Patient with id ${id} updated successfully`,
+      data: {
+        id: updatedPatient.id,
+        uniqueId: updatedPatient.uniqueId,
+        name: updatedPatient.name,
+        email: updatedPatient.email,
+        dateOfBirth: updatedPatient.dateOfBirth,
+        socialMediaLinks: updatedPatient.socialMediaLinks,
+        createdAt: updatedPatient.createdAt,
+      },
+    };
+  } catch (error) {
+    throw new BadRequestException(this.getPatientCreateErrorMessage(error));
+  }
+}
+
+async deletePatient(id: number) {
+  const patient = await this.patientRepo.findOne({
+    where: { id },
+  });
+
+  if (!patient) {
+    throw new NotFoundException(`Patient with id ${id} not found`);
+  }
+
+  await this.patientRepo.remove(patient);
+
+  return {
+    message: `Patient with id ${id} deleted successfully`,
+  };
+}
+
 
 
 
@@ -221,21 +422,63 @@ export class AdminService {
     }
     
     async getAppointmentById(id: number) {
-        const appointment = await this.appointmentRepo.findOne({ where: { id },relations: ['patient', 'admin', 'bill'], });
-        
-        if (!appointment) {
-            throw new NotFoundException('Appointment not found');
-        }
-        return {
-            message: `Appointment with id ${id} retrieved successfully`,
-            data: [
-                appointment.id,
-                appointment.patient.name,
-                appointment.doctorName,
-                appointment.appointmentDate,
-                appointment.paymentStatus,
-            ],
-        };
+    const appointment = await this.appointmentRepo.findOne({
+        where: { id },
+        relations: ['patient', 'admin', 'bill'],
+    });
+
+    if (!appointment) {
+        throw new NotFoundException('Appointment not found');
+    }
+
+    return {
+        message: `Appointment with id ${id} retrieved successfully`,
+        data: {
+        id: appointment.id,
+        uniqueId: appointment.uniqueId,
+        doctorName: appointment.doctorName,
+        appointmentDate: appointment.appointmentDate,
+
+        // Important fields:
+        status: appointment.status,
+        paymentStatus: appointment.paymentStatus,
+
+        createdAt: appointment.createdAt,
+
+        patient: appointment.patient
+            ? {
+                id: appointment.patient.id,
+                uniqueId: appointment.patient.uniqueId,
+                name: appointment.patient.name,
+                email: appointment.patient.email,
+                dateOfBirth: appointment.patient.dateOfBirth,
+                socialMediaLinks: appointment.patient.socialMediaLinks,
+                createdAt: appointment.patient.createdAt,
+            }
+            : null,
+
+        admin: appointment.admin
+            ? {
+                id: appointment.admin.id,
+                name: appointment.admin.name,
+                uname: appointment.admin.uname,
+                email: appointment.admin.email,
+            }
+            : null,
+
+        bill: appointment.bill
+            ? {
+                id: appointment.bill.id,
+                patientName: appointment.bill.patientName,
+                serviceCharge: appointment.bill.serviceCharge,
+                roomCharge: appointment.bill.roomCharge ?? 0,
+                billingDate: appointment.bill.billingDate,
+                status: appointment.bill.status,
+                paymentDate: appointment.bill.paymentDate,
+            }
+            : null,
+        },
+    };
     }
 
 
@@ -419,229 +662,330 @@ export class AdminService {
 
 
 
-    // Billing Management
+   // Billing Management
 
     async getAllBills() {
-        const bills = await this.billRepo.find({
-            relations: ['admin', 'appointment', 'appointment.patient'],
-            order: { id: 'ASC' },
-        });
+    const bills = await this.billRepo.find({
+        relations: ['admin', 'patient', 'appointment', 'appointment.patient'],
+        order: { id: 'ASC' },
+    });
 
-        return {
-            message: 'All bills retrieved successfully',
-            data: bills.map((bill) => ({
-            id: bill.id,
-            patientName: bill.patientName,
-            serviceCharge: bill.serviceCharge,
-            billingDate: bill.billingDate,
-            status: bill.status,
-            paymentDate: bill.paymentDate,
-            createdAt: bill.createdAt,
-            admin: bill.admin
-                ? {
-                    name: bill.admin.name,
-                    email: bill.admin.email,
+    return {
+        message: 'All bills retrieved successfully',
+        data: bills.map((bill) => ({
+        id: bill.id,
+        patientId: bill.patient?.id ?? bill.appointment?.patient?.id ?? null,
+        patientName: bill.patient?.name ?? bill.patientName,
+        serviceCharge: bill.serviceCharge,
+        roomCharge: bill.roomCharge ?? 0,
+        billingDate: bill.billingDate,
+        status: bill.status,
+        paymentDate: bill.paymentDate,
+        createdAt: bill.createdAt,
+
+        patient: bill.patient
+            ? {
+                id: bill.patient.id,
+                uniqueId: bill.patient.uniqueId,
+                name: bill.patient.name,
+                email: bill.patient.email,
+            }
+            : bill.appointment?.patient
+            ? {
+                id: bill.appointment.patient.id,
+                uniqueId: bill.appointment.patient.uniqueId,
+                name: bill.appointment.patient.name,
+                email: bill.appointment.patient.email,
                 }
-                : null,
-            appointment: bill.appointment
+            : null,
+
+        admin: bill.admin
+            ? {
+                name: bill.admin.name,
+                email: bill.admin.email,
+            }
+            : null,
+
+        appointment: bill.appointment
+            ? {
+                id: bill.appointment.id,
+                patient: bill.appointment.patient
                 ? {
-                    patient: bill.appointment.patient
-                    ? {
-                        id: bill.appointment.patient.id,
-                        name: bill.appointment.patient.name,
-                        email: bill.appointment.patient.email,
-                        socialMediaLinks: bill.appointment.patient.socialMediaLinks,
-                        }
-                    : null,
-                    doctorName: bill.appointment.doctorName,
-                    appointmentDate: bill.appointment.appointmentDate,
-                    status: bill.appointment.status,
-                    paymentStatus: bill.appointment.paymentStatus,
-                }
+                    id: bill.appointment.patient.id,
+                    name: bill.appointment.patient.name,
+                    email: bill.appointment.patient.email,
+                    socialMediaLinks:
+                        bill.appointment.patient.socialMediaLinks,
+                    }
                 : null,
-            })),
-        };
+                doctorName: bill.appointment.doctorName,
+                appointmentDate: bill.appointment.appointmentDate,
+                status: bill.appointment.status,
+                paymentStatus: bill.appointment.paymentStatus,
+            }
+            : null,
+        })),
+    };
     }
 
-
     async createBill(adminId: number, data: BillDto) {
-        const admin = await this.adminRepo.findOne({ where: { id: adminId } });
+    const admin = await this.adminRepo.findOne({
+        where: { id: adminId },
+    });
 
-        if (!admin) {
-            throw new NotFoundException('Admin not found');
-        }
+    if (!admin) {
+        throw new NotFoundException('Admin not found');
+    }
 
-        let appointment: Appointment | null = null;
+    let appointment: Appointment | null = null;
+    let patient: PaitentEntity | null = null;
 
-        if (data.appointmentId) {
-            appointment = await this.appointmentRepo.findOne({
-            where: { id: data.appointmentId },relations: ['bill', 'patient'],});
-
-            if (!appointment) {
-                throw new NotFoundException('Appointment not found');
-            }
-
-            if (appointment.bill) {
-                throw new BadRequestException('This appointment already has a bill');
-            }
-
-            if (data.patientName !== appointment.patient?.name) {
-                throw new BadRequestException('Patient name does not match the appointment patient');
-            }
-        }
-
-        const bill = this.billRepo.create({
-            patientName: data.patientName,
-            serviceCharge: data.serviceCharge,
-            billingDate: data.billingDate,
-            status: 'Unpaid',
-            admin,
-            appointment: appointment || undefined,
+    if (data.patientId) {
+        patient = await this.patientRepo.findOne({
+        where: { id: data.patientId },
         });
 
-        const savedBill = await this.billRepo.save(bill);
+        if (!patient) {
+        throw new NotFoundException(`Patient with id ${data.patientId} not found`);
+        }
+    }
 
-        const fullBill = await this.billRepo.findOne({
-            where: { id: savedBill.id },
-            relations: ['admin', 'appointment', 'appointment.patient'],
+    if (data.appointmentId) {
+        appointment = await this.appointmentRepo.findOne({
+        where: { id: data.appointmentId },
+        relations: ['bill', 'patient'],
         });
 
-        return {
-            message: 'Bill created successfully',
-            data: fullBill,
-        };
+        if (!appointment) {
+        throw new NotFoundException('Appointment not found');
+        }
+
+        if (appointment.bill) {
+        throw new BadRequestException('This appointment already has a bill');
+        }
+
+        if (patient && appointment.patient?.id !== patient.id) {
+        throw new BadRequestException(
+            'Patient ID does not match the appointment patient',
+        );
+        }
+
+        if (!patient && data.patientName !== appointment.patient?.name) {
+        throw new BadRequestException(
+            'Patient name does not match the appointment patient',
+        );
+        }
+
+        if (!patient && appointment.patient) {
+        patient = appointment.patient;
+        }
+    }
+
+    const billPatientName = patient?.name ?? data.patientName;
+
+    if (!billPatientName) {
+        throw new BadRequestException('Patient name is required');
+    }
+
+    const bill = this.billRepo.create({
+        patientName: billPatientName,
+        patient: patient || undefined,
+        serviceCharge: data.serviceCharge,
+        roomCharge: data.roomCharge ?? 0,
+        billingDate: data.billingDate,
+        status: 'Unpaid',
+        admin,
+        appointment: appointment || undefined,
+    });
+
+    const savedBill = await this.billRepo.save(bill);
+
+    const fullBill = await this.billRepo.findOne({
+        where: { id: savedBill.id },
+        relations: ['admin', 'patient', 'appointment', 'appointment.patient'],
+    });
+
+    return {
+        message: 'Bill created successfully',
+        data: fullBill,
+    };
     }
 
     async getBillById(id: number) {
-        const bill = await this.billRepo.findOne({
-            where: { id },
-            relations: ['admin', 'appointment', 'appointment.patient'],
+    const bill = await this.billRepo.findOne({
+        where: { id },
+        relations: ['admin', 'patient', 'appointment', 'appointment.patient'],
+    });
+
+    if (!bill) {
+        throw new NotFoundException('Bill not found');
+    }
+
+    return {
+        message: `Bill with id ${id} retrieved successfully`,
+        data: {
+        id: bill.id,
+        uniqueId: bill.uniqueId,
+        patientId: bill.patient?.id ?? bill.appointment?.patient?.id ?? null,
+        patientName: bill.patient?.name ?? bill.patientName,
+        serviceCharge: bill.serviceCharge,
+        roomCharge: bill.roomCharge ?? 0,
+        billingDate: bill.billingDate,
+        status: bill.status,
+        paymentDate: bill.paymentDate,
+        createdAt: bill.createdAt,
+
+        patient: bill.patient
+            ? {
+                id: bill.patient.id,
+                uniqueId: bill.patient.uniqueId,
+                name: bill.patient.name,
+                email: bill.patient.email,
+            }
+            : bill.appointment?.patient
+            ? {
+                id: bill.appointment.patient.id,
+                uniqueId: bill.appointment.patient.uniqueId,
+                name: bill.appointment.patient.name,
+                email: bill.appointment.patient.email,
+                }
+            : null,
+
+        admin: bill.admin
+            ? {
+                id: bill.admin.id,
+            }
+            : null,
+
+        appointment: bill.appointment
+            ? {
+                id: bill.appointment.id,
+            }
+            : null,
+        },
+    };
+    }
+
+    async updateBill(id: number, data: BillDto) {
+    const bill = await this.billRepo.findOne({
+        where: { id },
+        relations: ['patient'],
+    });
+
+    if (!bill) {
+        throw new NotFoundException('Bill not found');
+    }
+
+    if (bill.status === 'Paid') {
+        throw new BadRequestException('Paid bill cannot be updated');
+    }
+
+    if (data.patientId !== undefined) {
+        const patient = await this.patientRepo.findOne({
+        where: { id: data.patientId },
         });
 
-        if (!bill) {
-            throw new NotFoundException('Bill not found');
+        if (!patient) {
+        throw new NotFoundException(`Patient with id ${data.patientId} not found`);
         }
 
-        return {
-            message: `Bill with id ${id} retrieved successfully`,
-            data: {
-            id: bill.id,
-            uniqueId: bill.uniqueId,
-            patientName: bill.patientName,
-            serviceCharge: bill.serviceCharge,
-            billingDate: bill.billingDate,
-            status: bill.status,
-            paymentDate: bill.paymentDate,
-            createdAt: bill.createdAt,
-            admin: bill.admin
-                ? {
-                    id: bill.admin.id,
-                    // name: bill.admin.name,
-                    // uname: bill.admin.uname,
-                    // email: bill.admin.email,
-                }: null,
-            appointment: bill.appointment
-                ? {
-                    id: bill.appointment.id,
-                    // patientName: bill.appointment.patient.name,
-                    // doctorName: bill.appointment.doctorName,
-                    // appointmentDate: bill.appointment.appointmentDate,
-                    // status: bill.appointment.status,
-                    // paymentStatus: bill.appointment.paymentStatus,
-                }: null,
-            },
-        };
+        bill.patient = patient;
+        bill.patientName = patient.name;
+    } else if (data.patientName !== undefined) {
+        bill.patientName = data.patientName;
     }
-    async updateBill(id: number, data: BillDto) {
-        const bill = await this.billRepo.findOne({ where: { id } });
 
-        if (!bill) {
-            throw new NotFoundException('Bill not found');
-        }
-
-        if (bill.status === 'Paid') {
-            throw new BadRequestException('Paid bill cannot be updated');
-        }
-
-        if (data.patientName !== undefined) {
-            bill.patientName = data.patientName;
-        }
-
-        if (data.serviceCharge !== undefined) {
-            bill.serviceCharge = data.serviceCharge;
-        }
-
-        if (data.billingDate !== undefined) {
-            bill.billingDate = data.billingDate;
-        }
-
-        const updatedBill = await this.billRepo.save(bill);
-
-        return {
-            message: `Bill with id ${id} updated successfully`,
-            data: updatedBill,
-        };
-    }
-    
-
-
-    async deleteBill(id: number) {
-        const bill = await this.billRepo.findOne({ where: { id } });
-
-        if (!bill) {
-        throw new NotFoundException('Bill not found');
-        }
-
-        await this.billRepo.remove(bill);
-
-        return {
-        message: `Bill with id ${id} deleted successfully`,
-        };
-    }
-    async updateServiceCharge(id: number, data: ServiceChargeDto) {
-        const bill = await this.billRepo.findOne({ where: { id } });
-
-        if (!bill) {
-        throw new NotFoundException('Bill not found');
-        }
-
+    if (data.serviceCharge !== undefined) {
         bill.serviceCharge = data.serviceCharge;
-        const updatedBill = await this.billRepo.save(bill);
+    }
 
-        return {
+    if (data.roomCharge !== undefined) {
+        bill.roomCharge = data.roomCharge;
+    }
+
+    if (data.billingDate !== undefined) {
+        bill.billingDate = data.billingDate;
+    }
+
+    const updatedBill = await this.billRepo.save(bill);
+
+    return {
         message: `Bill with id ${id} updated successfully`,
         data: updatedBill,
-        };
+    };
+    }
+
+    async deleteBill(id: number) {
+    const bill = await this.billRepo.findOne({
+        where: { id },
+    });
+
+    if (!bill) {
+        throw new NotFoundException('Bill not found');
+    }
+
+    await this.billRepo.remove(bill);
+
+    return {
+        message: `Bill with id ${id} deleted successfully`,
+    };
+    }
+
+    async updateServiceCharge(id: number, data: ServiceChargeDto) {
+    const bill = await this.billRepo.findOne({
+        where: { id },
+    });
+
+    if (!bill) {
+        throw new NotFoundException('Bill not found');
+    }
+
+    if (bill.status === 'Paid') {
+        throw new BadRequestException('Paid bill cannot be updated');
+    }
+
+    bill.serviceCharge = data.serviceCharge;
+
+    if (data.roomCharge !== undefined) {
+        bill.roomCharge = data.roomCharge;
+    }
+
+    const updatedBill = await this.billRepo.save(bill);
+
+    return {
+        message: `Bill with id ${id} updated successfully`,
+        data: updatedBill,
+    };
     }
 
     async payBill(id: number) {
-        const bill = await this.billRepo.findOne({
-            where: { id },
-            relations: ['appointment'],
-        });
+    const bill = await this.billRepo.findOne({
+        where: { id },
+        relations: ['appointment'],
+    });
 
-        if (!bill) {
-            throw new NotFoundException('Bill not found');
-        }
+    if (!bill) {
+        throw new NotFoundException('Bill not found');
+    }
 
-        if (bill.status === 'Paid') {
-            throw new BadRequestException('Bill is already paid');
-        }
+    if (bill.status === 'Paid') {
+        throw new BadRequestException('Bill is already paid');
+    }
 
-        bill.status = 'Paid';
-        bill.paymentDate = new Date();
+    bill.status = 'Paid';
+    bill.paymentDate = new Date();
 
-        if (bill.appointment) {
-            bill.appointment.paymentStatus = 'Paid';
-            await this.appointmentRepo.save(bill.appointment);
-        }
+    if (bill.appointment) {
+        bill.appointment.paymentStatus = 'Paid';
+        await this.appointmentRepo.save(bill.appointment);
+    }
 
-        const updatedBill = await this.billRepo.save(bill);
+    const updatedBill = await this.billRepo.save(bill);
 
-        return {
-            message: `Bill with id ${id} marked as paid successfully`,
-            data: updatedBill,
-        };
+    return {
+        message: `Bill with id ${id} marked as paid successfully`,
+        data: updatedBill,
+    };
     }
 
     async getBillingReport(startDate?: string, endDate?: string) {
@@ -705,15 +1049,21 @@ export class AdminService {
 
     // Room & Bed Management
     async getAllRooms() {
-        const rooms = await this.roomRepo.find({ order: { id: 'ASC' } });
+        const rooms = await this.roomRepo.find({
+            relations: ['assignments', 'assignments.patient', 'assignments.assignedBy'],
+            order: { id: 'ASC' },
+        });
 
         return {
             message: 'All rooms retrieved successfully',
-            data: rooms,
+            data: rooms.map((room) => this.formatRoomResponse(room)),
         };
     }
     async getRoomById(id: number) {
-        const room = await this.roomRepo.findOne({ where: { id } });
+        const room = await this.roomRepo.findOne({
+            where: { id },
+            relations: ['assignments', 'assignments.patient', 'assignments.assignedBy'],
+        });
 
         if (!room) {
             throw new NotFoundException('Room not found');
@@ -721,7 +1071,7 @@ export class AdminService {
 
         return {
             message: `Room with id ${id} retrieved successfully`,
-            data: room,
+            data: this.formatRoomResponse(room),
         };
     }
 
@@ -785,7 +1135,7 @@ export class AdminService {
         };
     }
 
-    async assignBed(id: number) {
+    async assignBed(id: number, adminId: number, data: RoomAssignDto) {
         const room = await this.roomRepo.findOne({ where: { id } });
 
         if (!room) {
@@ -796,16 +1146,58 @@ export class AdminService {
             throw new BadRequestException('No beds available in this room');
         }
 
+        const patient = await this.patientRepo.findOne({
+            where: { id: data.patientId },
+        });
+
+        if (!patient) {
+            throw new NotFoundException(`Patient with id ${data.patientId} not found`);
+        }
+
+        const admin = await this.adminRepo.findOne({ where: { id: adminId } });
+
+        if (!admin) {
+            throw new NotFoundException('Assigning admin not found');
+        }
+
+        const activePatientAssignment = await this.roomAssignmentRepo.findOne({
+            where: {
+                patient: { id: data.patientId },
+                status: 'Assigned',
+            },
+            relations: ['room', 'patient'],
+        });
+
+        if (activePatientAssignment) {
+            throw new BadRequestException(
+                `Patient with id ${data.patientId} is already assigned to room ${activePatientAssignment.room.id}`,
+            );
+        }
+
         room.availableBeds -= 1;
-        const updatedRoom = await this.roomRepo.save(room);
+        await this.roomRepo.save(room);
+
+        const assignment = this.roomAssignmentRepo.create({
+            room,
+            patient,
+            assignedBy: admin,
+            status: 'Assigned',
+        });
+
+        await this.roomAssignmentRepo.save(assignment);
+
+        const updatedRoom = await this.roomRepo.findOne({
+            where: { id },
+            relations: ['assignments', 'assignments.patient', 'assignments.assignedBy'],
+        });
 
         return {
-            message: `Bed assigned successfully in room ${id}`,
-            data: updatedRoom,
+            message: `Room ${id} assigned successfully to patient ${data.patientId}`,
+            data: updatedRoom ? this.formatRoomResponse(updatedRoom) : null,
         };
     }
 
-    async releaseBed(id: number) {
+    async releaseBed(id: number, patientId?: number) {
         const room = await this.roomRepo.findOne({ where: { id } });
 
         if (!room) {
@@ -818,14 +1210,82 @@ export class AdminService {
             );
         }
 
+        const assignmentQuery = this.roomAssignmentRepo
+            .createQueryBuilder('assignment')
+            .leftJoinAndSelect('assignment.room', 'room')
+            .leftJoinAndSelect('assignment.patient', 'patient')
+            .leftJoinAndSelect('assignment.assignedBy', 'assignedBy')
+            .where('room.id = :id', { id })
+            .andWhere('assignment.status = :status', { status: 'Assigned' })
+            .orderBy('assignment.id', 'DESC');
+
+        if (patientId) {
+            assignmentQuery.andWhere('patient.id = :patientId', { patientId });
+        }
+
+        const activeAssignment = await assignmentQuery.getOne();
+
+        if (!activeAssignment) {
+            throw new NotFoundException(
+                patientId
+                    ? `No active assignment found for patient ${patientId} in room ${id}`
+                    : `No active assignment found in room ${id}`,
+            );
+        }
+
+        activeAssignment.status = 'Released';
+        activeAssignment.releasedAt = new Date();
+        await this.roomAssignmentRepo.save(activeAssignment);
+
         room.availableBeds += 1;
-        const updatedRoom = await this.roomRepo.save(room);
+        await this.roomRepo.save(room);
+
+        const updatedRoom = await this.roomRepo.findOne({
+            where: { id },
+            relations: ['assignments', 'assignments.patient', 'assignments.assignedBy'],
+        });
 
         return {
             message: `Bed released successfully in room ${id}`,
-            data: updatedRoom,
+            data: updatedRoom ? this.formatRoomResponse(updatedRoom) : null,
+        };
+    }
+
+    private formatRoomResponse(room: RoomEntity) {
+        return {
+            id: room.id,
+            uniqueId: room.uniqueId,
+            roomType: room.roomType,
+            totalBeds: room.totalBeds,
+            availableBeds: room.availableBeds,
+            createdAt: room.createdAt,
+            assignments: (room.assignments || []).map((assignment) => ({
+                id: assignment.id,
+                uniqueId: assignment.uniqueId,
+                status: assignment.status,
+                assignedAt: assignment.assignedAt,
+                releasedAt: assignment.releasedAt,
+                patient: assignment.patient
+                    ? {
+                        id: assignment.patient.id,
+                        uniqueId: assignment.patient.uniqueId,
+                        name: assignment.patient.name,
+                        email: assignment.patient.email,
+                    }
+                    : null,
+                assignedBy: assignment.assignedBy
+                    ? {
+                        id: assignment.assignedBy.id,
+                        uniqueId: assignment.assignedBy.uniqueId,
+                        name: assignment.assignedBy.name,
+                        email: assignment.assignedBy.email,
+                    }
+                    : null,
+            })),
         };
     }
 
 
 }
+
+
