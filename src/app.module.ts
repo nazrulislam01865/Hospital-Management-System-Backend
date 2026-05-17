@@ -18,7 +18,7 @@ import { MailModule } from './mail/mail.module';
       host: 'localhost',
       port: 5433,
       username: 'postgres',
-      password: 'taskmanager',
+      password: 'Shuvessa',
       database: 'hospital_management1',
       autoLoadEntities: true,
       synchronize: true,
