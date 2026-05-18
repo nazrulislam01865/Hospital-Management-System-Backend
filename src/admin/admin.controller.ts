@@ -63,16 +63,14 @@ export class AdminController {
     //pusher js
     @Post('notifications/pusher/auth')
     authorizePusherNotificationChannel(
-        @Req() req: any,
-        @Body('socket_id') socketId: string,
-        @Body('channel_name') channelName: string,
+    @Body('socket_id') socketId: string,
+    @Body('channel_name') channelName: string,
     ) {
-        return this.notificationService.authorizePrivateChannel(
-            socketId,
-            channelName,
-        );
+    return this.notificationService.authorizePrivateChannel(
+        socketId,
+        channelName,
+    );
     }
-
 
 
 
