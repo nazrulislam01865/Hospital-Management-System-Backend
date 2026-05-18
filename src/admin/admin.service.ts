@@ -14,6 +14,7 @@ import { AdminEntity } from "./entities/admin.entity";
 import { BillEntity } from "./entities/bill.entity";
 import { RoomEntity } from "./entities/room.entity";
 import { PaitentEntity } from "../patient/entities/patient.entity";
+import { NotificationService } from "../notification/notification.service";
 
 import * as bcrypt from 'bcryptjs';
 import { MailService } from "../mail/mail.service";
@@ -36,6 +37,7 @@ export class AdminService {
     @InjectRepository(RoomAssignmentEntity)
     private readonly roomAssignmentRepo: Repository<RoomAssignmentEntity>,
     private readonly mailService: MailService,
+    private readonly notificationService: NotificationService,
     ) {}
 
 
@@ -126,94 +128,8 @@ export class AdminService {
     }
 
 
-
-    // //Patient Management
-
-    // async getAllPatients() {
-    //     const patients = await this.patientRepo.find({ order: { id: 'ASC' } });
-
-    //     return {
-    //     message: 'All patients retrieved successfully',
-    //     data: patients,
-    //     };
-    // }
-
-    // async getPatientById(id: number) {
-    //     const patient = await this.patientRepo.findOne({ where: { id } });
-
-    //     if (!patient) {
-    //         throw new NotFoundException('Patient not found');
-    //     }
-
-    //     return {
-    //         message: `Patient with id ${id} retrieved successfully`,
-    //         data: {
-    //         id: patient.id,
-    //         uniqueId: patient.uniqueId,
-    //         name: patient.name,
-    //         dateOfBirth: patient.dateOfBirth,
-    //         socialMediaLinks: patient.socialMediaLinks,
-    //         },
-    //     };
-    // }
-
-    // async createPatient(data: PatientDto): Promise<object> {
-    //     const hashedPassword = await bcrypt.hash(data.password, 10);
-        
-    //     const patient = this.patientRepo.create({
-    //         name: data.name,
-    //         email: data.email,
-    //         password: hashedPassword,
-    //         dateOfBirth: data.dateOfBirth,
-    //         socialMediaLinks: data.socialMediaLinks,
-    //     });
-    //     await this.patientRepo.save(patient);
-    //     return { message: 'Patient created successfully', data: patient };
-    // }
-
-    // async deletePatient(id: number) {
-    //     const patient = await this.patientRepo.findOne({ where: { id } });
-
-    //     if (!patient) {
-    //     throw new NotFoundException('Patient not found');
-    //     }
-
-    //     await this.patientRepo.remove(patient);
-
-    //     return {
-    //     message: `Patient with id ${id} deleted successfully`,
-    //     };
-    // }
-
-
-    // async updatePatients(id: number, data: PatientDto) {
-    //     const patient = await this.patientRepo.findOne({ where: { id } });
-
-    //     if (!patient) {
-    //     throw new NotFoundException('Patient not found');
-    //     }
-
-    //     patient.name = data.name;
-    //     patient.email = data.email;
-    //     patient.password = await bcrypt.hash(data.password, 10);
-    //     patient.dateOfBirth = data.dateOfBirth;
-    //     patient.socialMediaLinks = data.socialMediaLinks;
-
-    //     const updatedPatient = await this.patientRepo.save(patient);
-
-    //     return {
-    //     message: `Patient with id ${id} updated successfully`,
-    //     data: [
-    //         updatedPatient.id,
-    //         updatedPatient.name,
-    //         updatedPatient.email,
-    //         updatedPatient.dateOfBirth,
-    //         updatedPatient.socialMediaLinks,
-    //     ],
-    //     };
-    // }
-
     // Patient Management
+
 
 async getAllPatients() {
   const patients = await this.patientRepo.find({
@@ -233,6 +149,7 @@ async getAllPatients() {
     })),
   };
 }
+
 
 async getPatientById(id: number) {
   const patient = await this.patientRepo.findOne({
@@ -280,6 +197,18 @@ async createPatient(data: PatientDto): Promise<object> {
 
   try {
     const savedPatient = await this.patientRepo.save(patient);
+
+    //pusher js
+    await this.notificationService.sendAdminNotification({
+        type: 'PATIENT_CREATED',
+        title: 'New patient created',
+        message: `${savedPatient.name} has been added as a patient.`,
+        href: `/admin/dashboard/patients/${savedPatient.id}`,
+        entity: {
+            type: 'patient',
+            id: savedPatient.id,
+        },
+    });
 
     return {
       message: 'Patient created successfully',
@@ -482,8 +411,61 @@ async deletePatient(id: number) {
     }
 
 
-    async createAppointment(adminId: number,data: AppointmentDto): Promise<object> {
+    // async createAppointment(adminId: number,data: AppointmentDto): Promise<object> {
 
+    //     const admin = await this.adminRepo.findOne({
+    //         where: { id: adminId },
+    //     });
+
+    //     if (!admin) {
+    //         throw new NotFoundException('Admin not found');
+    //     }
+    //     const patient = await this.patientRepo.findOne({
+    //         where: { id: data.patientId },
+    //     });
+
+    //     if (!patient) {
+    //         throw new NotFoundException(`Patient with id ${data.patientId} not found`);
+    //     }
+
+    //     const appointment = this.appointmentRepo.create({
+    //         patient,
+    //         doctorName: data.doctorName,
+    //         appointmentDate: data.appointmentDate
+    //         ? new Date(data.appointmentDate)
+    //         : new Date(),
+    //         status: 'Pending',
+    //         paymentStatus: 'Unpaid',
+    //         admin,
+    //     });
+
+    //     const create= await this.appointmentRepo.save(appointment);
+    //     let emailNotification = 'sent';
+
+    //     try {
+    //         await this.mailService.sendMail(patient, create);
+    //     } catch (error) {
+    //         emailNotification = 'failed';
+    //         console.error('Appointment email sending failed:', error);
+    //     }
+
+    //     return {
+    //         message: 'Appointment created successfully',
+    //         emailNotification,
+    //         data: [
+    //             create.id,
+    //             create.patient.name,
+    //             create.doctorName,
+    //             create.appointmentDate,
+    //             create.paymentStatus,
+    //             create.status,
+    //             create.admin.name
+    //         ],
+    //     }
+
+    // }
+
+    async createAppointment(adminId: number, data: AppointmentDto): Promise<object> {
         const admin = await this.adminRepo.findOne({
             where: { id: adminId },
         });
@@ -491,6 +473,7 @@ async deletePatient(id: number) {
         if (!admin) {
             throw new NotFoundException('Admin not found');
         }
+
         const patient = await this.patientRepo.findOne({
             where: { id: data.patientId },
         });
@@ -503,14 +486,26 @@ async deletePatient(id: number) {
             patient,
             doctorName: data.doctorName,
             appointmentDate: data.appointmentDate
-            ? new Date(data.appointmentDate)
-            : new Date(),
+                ? new Date(data.appointmentDate)
+                : new Date(),
             status: 'Pending',
             paymentStatus: 'Unpaid',
             admin,
         });
 
-        const create= await this.appointmentRepo.save(appointment);
+        const create = await this.appointmentRepo.save(appointment);
+
+        await this.notificationService.sendAdminNotification({
+            type: 'APPOINTMENT_CREATED',
+            title: 'New appointment created',
+            message: `${patient.name} has a new appointment with Dr. ${create.doctorName}.`,
+            href: `/admin/dashboard/appointments/${create.id}`,
+            entity: {
+                type: 'appointment',
+                id: create.id,
+            },
+        });
+
         let emailNotification = 'sent';
 
         try {
@@ -530,10 +525,9 @@ async deletePatient(id: number) {
                 create.appointmentDate,
                 create.paymentStatus,
                 create.status,
-                create.admin.name
+                create.admin.name,
             ],
-        }
-
+        };
     }
 
 
@@ -570,6 +564,19 @@ async deletePatient(id: number) {
             where: { id: updatedAppointment.id },
             relations: ['patient', 'admin', 'bill'],
         });
+
+        if (fullAppointment) {
+            await this.notificationService.sendAdminNotification({
+                type: 'APPOINTMENT_UPDATED',
+                title: 'Appointment updated',
+                message: `${fullAppointment.patient?.name ?? 'A patient'} appointment has been updated.`,
+                href: `/admin/dashboard/appointments/${fullAppointment.id}`,
+                entity: {
+                    type: 'appointment',
+                    id: fullAppointment.id,
+                },
+            });
+        }
 
         return {
             message: `Appointment with id ${id} updated successfully`,
@@ -622,7 +629,10 @@ async deletePatient(id: number) {
 
 
     async approveAppointment(id: number) {
-        const appointment = await this.appointmentRepo.findOne({ where: { id } });
+        const appointment = await this.appointmentRepo.findOne({
+            where: { id },
+            relations: ['patient'],
+        });
 
         if (!appointment) {
             throw new NotFoundException('Appointment not found');
@@ -631,6 +641,17 @@ async deletePatient(id: number) {
         appointment.status = 'Approved';
         const updatedAppointment = await this.appointmentRepo.save(appointment);
 
+        await this.notificationService.sendAdminNotification({
+            type: 'APPOINTMENT_APPROVED',
+            title: 'Appointment approved',
+            message: `${appointment.patient?.name ?? 'A patient'} appointment has been approved.`,
+            href: `/admin/dashboard/appointments/${id}`,
+            entity: {
+                type: 'appointment',
+                id,
+            },
+        });
+
         return {
             message: `Appointment with id ${id} approved successfully`,
             data: updatedAppointment,
@@ -638,8 +659,27 @@ async deletePatient(id: number) {
     }
 
 
+    // async cancelAppointment(id: number) {
+    //     const appointment = await this.appointmentRepo.findOne({ where: { id } });
+
+    //     if (!appointment) {
+    //         throw new NotFoundException('Appointment not found');
+    //     }
+
+    //     appointment.status = 'Cancelled';
+    //     const updatedAppointment = await this.appointmentRepo.save(appointment);
+
+    //     return {
+    //         message: `Appointment with id ${id} cancelled successfully`,
+    //         data: updatedAppointment,
+    //     };
+    // }
+
     async cancelAppointment(id: number) {
-        const appointment = await this.appointmentRepo.findOne({ where: { id } });
+        const appointment = await this.appointmentRepo.findOne({
+            where: { id },
+            relations: ['patient'],
+        });
 
         if (!appointment) {
             throw new NotFoundException('Appointment not found');
@@ -647,6 +687,17 @@ async deletePatient(id: number) {
 
         appointment.status = 'Cancelled';
         const updatedAppointment = await this.appointmentRepo.save(appointment);
+
+        await this.notificationService.sendAdminNotification({
+            type: 'APPOINTMENT_CANCELLED',
+            title: 'Appointment cancelled',
+            message: `${appointment.patient?.name ?? 'A patient'} appointment has been cancelled.`,
+            href: `/admin/dashboard/appointments/${id}`,
+            entity: {
+                type: 'appointment',
+                id,
+            },
+        });
 
         return {
             message: `Appointment with id ${id} cancelled successfully`,
@@ -804,6 +855,19 @@ async deletePatient(id: number) {
         where: { id: savedBill.id },
         relations: ['admin', 'patient', 'appointment', 'appointment.patient'],
     });
+
+    if (fullBill) {
+        await this.notificationService.sendAdminNotification({
+            type: 'BILL_CREATED',
+            title: 'New bill created',
+            message: `A new bill has been created for ${fullBill.patientName}.`,
+            href: `/admin/dashboard/billing`,
+            entity: {
+                type: 'bill',
+                id: fullBill.id,
+            },
+        });
+    }
 
     return {
         message: 'Bill created successfully',
@@ -981,6 +1045,17 @@ async deletePatient(id: number) {
     }
 
     const updatedBill = await this.billRepo.save(bill);
+    //pusher js
+    await this.notificationService.sendAdminNotification({
+        type: 'BILL_PAID',
+        title: 'Bill paid',
+        message: `Bill #${updatedBill.id} has been marked as paid.`,
+        href: `/admin/dashboard/billing`,
+        entity: {
+            type: 'bill',
+            id: updatedBill.id,
+        },
+    });
 
     return {
         message: `Bill with id ${id} marked as paid successfully`,
@@ -1176,6 +1251,17 @@ async deletePatient(id: number) {
 
         room.availableBeds -= 1;
         await this.roomRepo.save(room);
+        //pusher js
+        await this.notificationService.sendAdminNotification({
+            type: 'ROOM_ASSIGNED',
+            title: 'Room assigned',
+            message: `${patient.name} has been assigned to room ${room.id}.`,
+            href: `/admin/dashboard/rooms`,
+            entity: {
+                type: 'room',
+                id: room.id,
+            },
+        });
 
         const assignment = this.roomAssignmentRepo.create({
             room,
@@ -1239,6 +1325,17 @@ async deletePatient(id: number) {
 
         room.availableBeds += 1;
         await this.roomRepo.save(room);
+        //pusher js
+        await this.notificationService.sendAdminNotification({
+            type: 'ROOM_RELEASED',
+            title: 'Bed released',
+            message: `A bed has been released from room ${room.id}.`,
+            href: `/admin/dashboard/rooms`,
+            entity: {
+                type: 'room',
+                id: room.id,
+            },
+        });
 
         const updatedRoom = await this.roomRepo.findOne({
             where: { id },

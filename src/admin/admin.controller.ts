@@ -11,14 +11,17 @@ import { JwtAuthGuard } from "../auth/guards/jwtAuth.guard";
 import { BillingReportDto } from "./dto/billingReport.dto";
 import { AuthService } from "../auth/auth.service";
 import { RoomAssignDto } from "./dto/room-assign.dto";
+import { NotificationService } from "../notification/notification.service";
 
 
 @UseGuards(JwtAuthGuard)
 @Controller("admin")
 export class AdminController {
 
-    constructor(private readonly adminService: AdminService,
-        private readonly authService: AuthService
+    constructor(
+        private readonly adminService: AdminService,
+        private readonly authService: AuthService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     // Admin Management
@@ -55,6 +58,19 @@ export class AdminController {
     @Delete('admins/:id')
     deleteAdmin(@Param('id', ParseIntPipe) id: number): object {
         return this.adminService.deleteAdmin(id);
+    }
+
+    //pusher js
+    @Post('notifications/pusher/auth')
+    authorizePusherNotificationChannel(
+        @Req() req: any,
+        @Body('socket_id') socketId: string,
+        @Body('channel_name') channelName: string,
+    ) {
+        return this.notificationService.authorizePrivateChannel(
+            socketId,
+            channelName,
+        );
     }
 
 

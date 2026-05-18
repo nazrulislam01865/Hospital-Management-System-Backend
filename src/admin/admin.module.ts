@@ -10,16 +10,18 @@ import { PaitentEntity } from "../patient/entities/patient.entity";
 import { RoomEntity } from "./entities/room.entity";
 import { RoomAssignmentEntity } from "./entities/room-assignment.entity";
 import { MailModule } from "../mail/mail.module";
+import { NotificationModule } from "../notification/notification.module";
 
 @Module({
     imports: [TypeOrmModule.forFeature([
-        AdminEntity,Appointment,
+        AdminEntity,
+        Appointment,
         BillEntity,
         PaitentEntity,
         RoomEntity, 
         RoomAssignmentEntity,
     ]),
-    AuthModule,MailModule],
+    AuthModule,MailModule,NotificationModule],
     controllers: [AdminController],
     providers: [AdminService],
 })
